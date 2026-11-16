@@ -1,7 +1,7 @@
 export type TetrominoType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
 export type CellType = TetrominoType | 'G' | null;
 
-export type ThemeId = 'neon' | 'retro' | 'minimal' | 'gold' | 'sakura';
+export type ThemeId = 'neon' | 'retro' | 'minimal' | 'minimalDark' | 'gold' | 'sakura';
 
 export type GameMode = 'normal' | 'dopamine';
 
@@ -581,6 +581,26 @@ export const THEMES: Record<ThemeId, ThemePalette> = {
       J: '#3b82f6',
       L: '#f97316',
       G: '#94a3b8',
+    },
+  },
+  minimalDark: {
+    id: 'minimalDark',
+    name: 'MODERN DARK',
+    boardBg: '#0f172a',
+    gridLine: 'rgba(148, 163, 184, 0.08)',
+    ghostAlpha: 0.22,
+    glow: false,
+    rounded: 7,
+    pixelBevel: false,
+    colors: {
+      I: '#22d3ee',
+      O: '#facc15',
+      T: '#a78bfa',
+      S: '#34d399',
+      Z: '#fb7185',
+      J: '#60a5fa',
+      L: '#fb923c',
+      G: '#475569',
     },
   },
   gold: {

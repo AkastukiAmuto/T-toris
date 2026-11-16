@@ -233,11 +233,11 @@ body[data-theme="minimal"] .toast-badge {
    ========================================== */
 .home-arcade-layout {
   position: relative;
-  width: 900px;
-  max-width: 94vw;
+  width: 960px;
+  max-width: 95vw;
   display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 44px;
+  grid-template-columns: 390px 1fr;
+  gap: 48px;
   align-items: center;
 }
 
@@ -286,18 +286,20 @@ body[data-theme="minimal"] .toast-badge {
 }
 
 .home-title {
-  font-size: 62px;
+  font-size: 52px;
   font-weight: 900;
-  letter-spacing: 6px;
+  letter-spacing: 3px;
   line-height: 1.05;
+  white-space: nowrap;
   color: var(--text-primary);
   text-shadow: var(--accent-glow);
 }
 
 .home-subtitle {
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 2.4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  line-height: 1.4;
   color: var(--text-secondary);
 }
 
@@ -403,20 +405,53 @@ body[data-theme="minimal"] .jukebox-preview-btn.playing {
   white-space: nowrap;
 }
 
-/* Right Column: Classic Vertical Arcade Menu List */
-.home-menu-list {
+/* Right Column: Rhythm-Game Style Rotary Wheel Menu */
+.home-menu-wheel-wrap {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-menu-list {
+  position: relative;
+  width: 100%;
+  height: 490px;
+  perspective: 900px;
+  overflow: visible;
+}
+
+.home-menu-list::before {
+  content: '';
+  position: absolute;
+  top: 25px;
+  bottom: 25px;
+  left: -18px;
+  width: 90px;
+  border-left: 2px dashed rgba(0, 240, 255, 0.25);
+  border-radius: 50% 0 0 50%;
+  pointer-events: none;
+}
+
+.home-wheel-hint {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  opacity: 0.85;
 }
 
 .arcade-menu-item {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  margin-top: -36px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 15px 20px;
   background: var(--bg-card);
   border: 1px solid var(--border-card);
   border-left: 5px solid var(--btn-border);
@@ -426,7 +461,8 @@ body[data-theme="minimal"] .jukebox-preview-btn.playing {
   text-align: left;
   cursor: pointer;
   backdrop-filter: blur(12px);
-  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  transform-origin: center center;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .menu-cursor {
@@ -437,17 +473,26 @@ body[data-theme="minimal"] .jukebox-preview-btn.playing {
   color: var(--accent);
   opacity: 0;
   transform: translateX(-6px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.arcade-menu-item.wheel-selected {
+  border-width: 2px;
+  border-left-width: 7px;
+  border-color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--btn-active-bg);
+  box-shadow: 0 0 32px rgba(0, 240, 255, 0.35), var(--board-shadow);
 }
 
 .arcade-menu-item:hover {
-  transform: translateX(8px);
   border-color: var(--accent);
   border-left-color: var(--accent);
   background: var(--btn-active-bg);
   box-shadow: var(--board-shadow);
 }
 
+.arcade-menu-item.wheel-selected .menu-cursor,
 .arcade-menu-item:hover .menu-cursor {
   opacity: 1;
   transform: translateX(0);
@@ -461,12 +506,14 @@ body[data-theme="minimal"] .jukebox-preview-btn.playing {
   border-left-color: #ff00aa;
 }
 
+.arcade-menu-item.mode-dopamine-item.wheel-selected,
 .arcade-menu-item.mode-dopamine-item:hover {
   border-color: #ff00aa;
   border-left-color: #ffe600;
   box-shadow: 0 0 26px rgba(255, 0, 170, 0.35);
 }
 
+.arcade-menu-item.quit-item.wheel-selected,
 .arcade-menu-item.quit-item:hover {
   border-color: #f43f5e;
   border-left-color: #f43f5e;
@@ -2784,13 +2831,26 @@ body.vs-cpu-active .controls-card {
   font-weight: 900;
   color: #00f0ff;
   text-shadow: 0 0 12px #00f0ff, 0 0 24px #ff2afc;
-  animation: acroInitFlash 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: acroInitFlash 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transition: transform 0.35s ease, color 0.35s ease, text-shadow 0.35s ease;
 }
 
 .acro-rest {
   color: #dbeafe;
   font-weight: 600;
   letter-spacing: 0.4px;
+  transition: opacity 0.35s ease;
+}
+
+.opening-boot-lines.acro-highlight .acro-rest,
+.opening-boot-lines.acro-highlight .boot-ok {
+  opacity: 0.22;
+}
+
+.opening-boot-lines.acro-highlight .acro-init {
+  color: #ffffff;
+  transform: scale(1.28) translateX(4px);
+  text-shadow: 0 0 18px #ffffff, 0 0 36px #00f0ff, 0 0 54px #ff2afc;
 }
 
 .sub-acro {
@@ -2812,4 +2872,48 @@ body.vs-cpu-active .controls-card {
     color: #00f0ff;
     text-shadow: 0 0 12px #00f0ff, 0 0 24px #ff2afc;
   }
+}
+
+/* Home Screen Live Animated Background Canvas */
+.home-bg-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.72;
+}
+
+.home-arcade-layout {
+  position: relative;
+  z-index: 2;
+}
+
+.home-subtitle {
+  letter-spacing: 1.8px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+/* Modern Minimal Dark Theme */
+body[data-theme="minimalDark"] {
+  --bg-main: #0b1120;
+  --bg-card: rgba(15, 23, 42, 0.92);
+  --bg-modal: #0f172a;
+  --border-card: #1e293b;
+  --border-board: #334155;
+  --board-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --accent: #38bdf8;
+  --accent-alt: #a78bfa;
+  --accent-glow: 0 4px 14px rgba(56, 189, 248, 0.28);
+  --btn-bg: #1e293b;
+  --btn-border: #334155;
+  --btn-active-bg: #0c4a6e;
+  --radius-card: 16px;
+  --radius-btn: 10px;
+  --font-family: "Segoe UI", "Yu Gothic UI", system-ui, sans-serif;
+  --scanline-opacity: 0;
 }

@@ -173,6 +173,32 @@ class AppController {
 
   // Home Screen Elements
   private homeScreenEl!: HTMLElement;
+  private homeBgCanvas!: HTMLCanvasElement;
+  private homeBgCtx!: CanvasRenderingContext2D;
+  private homeBgShapes: Array<{
+    x: number;
+    y: number;
+    vy: number;
+    rot: number;
+    vrot: number;
+    size: number;
+    color: string;
+    cells: [number, number][];
+    alpha: number;
+  }> = [];
+  private homeBgSparks: Array<{
+    x: number;
+    y: number;
+    vy: number;
+    vx: number;
+    size: number;
+    color: string;
+    alpha: number;
+  }> = [];
+  private homeBgScanY: number = 0;
+  private homeMenuItems: HTMLButtonElement[] = [];
+  private homeMenuIndex: number = 0;
+  private lastHomeWheelTime: number = 0;
   private appShellEl!: HTMLElement;
   private homeBtnNormal!: HTMLButtonElement;
   private homeBtnDopamine!: HTMLButtonElement;
@@ -455,6 +481,8 @@ class AppController {
     });
 
     this.bindDom();
+    this.initHomeBgAnimation();
+    this.updateHomeMenuWheel();
     this.loadLocalPreferences();
     void this.loadDiskPreferences();
     void this.loadAppVersionAndCheckUpdates();
@@ -485,6 +513,9 @@ class AppController {
     this.homeUpdateBtn = document.getElementById('home-update-btn') as HTMLButtonElement;
 
     this.homeScreenEl = document.getElementById('home-screen')!;
+    this.homeMenuItems = Array.from(document.querySelectorAll('#home-menu-list .arcade-menu-item'));
+    this.homeBgCanvas = document.getElementById('home-bg-canvas') as HTMLCanvasElement;
+    this.homeBgCtx = this.homeBgCanvas.getContext('2d')!;
     this.appShellEl = document.getElementById('app-shell')!;
     this.homeBtnNormal = document.getElementById('home-btn-normal') as HTMLButtonElement;
     this.homeBtnDopamine = document.getElementById('home-btn-dopamine') as HTMLButtonElement;
@@ -930,6 +961,9 @@ class AppController {
       this.isPreviewingBgm = false;
       this.previewingTrackId = null;
       this.sound.stopBgm();
+      if (this.isOnHomeScreen && !this.isOnOpeningScreen) {
+        this.sound.startMenuBgm();
+      }
     } else {
       this.sound.setBgmTrack(trackToPlay);
       this.isPreviewingBgm = true;
@@ -1432,13 +1466,15 @@ class AppController {
     this.openingScreenEl.classList.remove('hidden', 'fade-out');
 
     const bootEntries: Array<{ delay: number; pct: number; initial: string; rest: string; status: string }> = [
-      { delay: 140, pct: 16, initial: 'T', rest: 'actical      // 7-BAG SRS & MATRIX KERNEL', status: 'OK' },
-      { delay: 360, pct: 33, initial: 'E', rest: 'xecution     // 60FPS HYPER-PARTICLE GPU', status: 'ACTIVE' },
-      { delay: 580, pct: 50, initial: 'T', rest: 'etrad        // T-SPIN & HARD DROP CORE', status: 'READY' },
-      { delay: 800, pct: 67, initial: 'R', rest: 'esonance     // DOPAMINE 5x5 OMEGA DRIVE', status: 'CHARGED' },
-      { delay: 1020, pct: 84, initial: 'I', rest: 'nterface     // P2P & VS-CPU NEURAL LINK', status: 'LINKED' },
-      { delay: 1240, pct: 100, initial: 'S', rest: 'ystem        // ALL MODULES SYNCHRONIZED', status: 'ONLINE' },
+      { delay: 180, pct: 16, initial: 'T', rest: 'actical      // 7-BAG SRS & MATRIX KERNEL', status: 'OK' },
+      { delay: 480, pct: 33, initial: 'E', rest: 'xecution     // 60FPS HYPER-PARTICLE GPU', status: 'ACTIVE' },
+      { delay: 780, pct: 50, initial: 'T', rest: 'etrad        // T-SPIN & HARD DROP CORE', status: 'READY' },
+      { delay: 1080, pct: 67, initial: 'R', rest: 'esonance     // DOPAMINE 5x5 OMEGA DRIVE', status: 'CHARGED' },
+      { delay: 1380, pct: 84, initial: 'I', rest: 'nterface     // P2P & VS-CPU NEURAL LINK', status: 'LINKED' },
+      { delay: 1680, pct: 100, initial: 'S', rest: 'ystem        // ALL MODULES SYNCHRONIZED', status: 'ONLINE' },
     ];
+
+    this.openingBootLinesEl.classList.remove('acro-highlight');
 
     bootEntries.forEach((entry, idx) => {
       const tid = window.setTimeout(() => {
@@ -1453,10 +1489,18 @@ class AppController {
       this.openingTimers.push(tid);
     });
 
+    // SEED-style climax: dim remaining letters and flare up the initials T-E-T-R-I-S!
+    const highlightTimer = window.setTimeout(() => {
+      if (!this.isOnOpeningScreen || this.isOpeningLogoReady) return;
+      this.openingBootLinesEl.classList.add('acro-highlight');
+      this.sound.playHold();
+    }, 2050);
+    this.openingTimers.push(highlightTimer);
+
     // Phase 2: Reveal Explosive Logo Stage & Wait for User Button Press
     const stageTimer = window.setTimeout(() => {
       this.showOpeningLogoStage();
-    }, 1650);
+    }, 2600);
     this.openingTimers.push(stageTimer);
   }
 
@@ -1496,8 +1540,148 @@ class AppController {
     this.openingScreenEl.classList.add('fade-out');
     const hideTimer = window.setTimeout(() => {
       this.openingScreenEl.classList.add('hidden');
+      if (this.isOnHomeScreen && !this.isPreviewingBgm) {
+        this.sound.startMenuBgm();
+      }
     }, 520);
     this.openingTimers.push(hideTimer);
+  }
+
+  private initHomeBgAnimation(): void {
+    const tetrominos: Array<{ cells: [number, number][]; color: string }> = [
+      { cells: [[-1.5, 0], [-0.5, 0], [0.5, 0], [1.5, 0]], color: '#00f0ff' }, // I
+      { cells: [[-1, 0], [0, 0], [1, 0], [0, 1]], color: '#c026d3' },          // T
+      { cells: [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]], color: '#facc15' }, // O
+      { cells: [[0, 0], [1, 0], [-1, 1], [0, 1]], color: '#22c55e' },          // S
+      { cells: [[-1, 0], [0, 0], [0, 1], [1, 1]], color: '#ef4444' },          // Z
+      { cells: [[-1, 0], [0, 0], [1, 0], [-1, 1]], color: '#3b82f6' },         // J
+      { cells: [[-1, 0], [0, 0], [1, 0], [1, 1]], color: '#f97316' },          // L
+    ];
+    const w = this.homeBgCanvas.width;
+    const h = this.homeBgCanvas.height;
+
+    this.homeBgShapes = [];
+    for (let i = 0; i < 18; i++) {
+      const t = tetrominos[i % tetrominos.length];
+      this.homeBgShapes.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vy: 0.35 + Math.random() * 0.75,
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 0.012,
+        size: 15 + Math.random() * 14,
+        color: t.color,
+        cells: t.cells,
+        alpha: 0.14 + Math.random() * 0.16,
+      });
+    }
+
+    const sparkColors = ['#00f0ff', '#ff2afc', '#ffe600', '#38bdf8'];
+    this.homeBgSparks = [];
+    for (let i = 0; i < 42; i++) {
+      this.homeBgSparks.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vy: -0.4 - Math.random() * 0.9,
+        vx: (Math.random() - 0.5) * 0.3,
+        size: 1.5 + Math.random() * 2.5,
+        color: sparkColors[i % sparkColors.length],
+        alpha: 0.25 + Math.random() * 0.45,
+      });
+    }
+  }
+
+  private updateAndRenderHomeBg(dtMs: number): void {
+    const ctx = this.homeBgCtx;
+    const w = this.homeBgCanvas.width;
+    const h = this.homeBgCanvas.height;
+    const step = dtMs / 16.67;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Subtle horizontal cyber scan beam
+    this.homeBgScanY = (this.homeBgScanY + 1.1 * step) % h;
+    const grad = ctx.createLinearGradient(0, this.homeBgScanY - 35, 0, this.homeBgScanY + 35);
+    grad.addColorStop(0, 'rgba(0, 240, 255, 0)');
+    grad.addColorStop(0.5, 'rgba(0, 240, 255, 0.07)');
+    grad.addColorStop(1, 'rgba(0, 240, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, this.homeBgScanY - 35, w, 70);
+
+    // Floating neon tetrominoes
+    for (const s of this.homeBgShapes) {
+      s.y += s.vy * step;
+      s.rot += s.vrot * step;
+      if (s.y > h + 90) {
+        s.y = -90;
+        s.x = Math.random() * w;
+      }
+
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.rot);
+      ctx.globalAlpha = s.alpha;
+      ctx.strokeStyle = s.color;
+      ctx.fillStyle = s.color;
+      ctx.lineWidth = 1.6;
+      for (const [cx, cy] of s.cells) {
+        const bx = cx * s.size - s.size / 2;
+        const by = cy * s.size - s.size / 2;
+        ctx.globalAlpha = s.alpha * 0.45;
+        ctx.fillRect(bx + 1, by + 1, s.size - 2, s.size - 2);
+        ctx.globalAlpha = s.alpha;
+        ctx.strokeRect(bx + 1, by + 1, s.size - 2, s.size - 2);
+      }
+      ctx.restore();
+    }
+
+    // Rising energy particles
+    for (const p of this.homeBgSparks) {
+      p.x += p.vx * step;
+      p.y += p.vy * step;
+      if (p.y < -10) {
+        p.y = h + 10;
+        p.x = Math.random() * w;
+      }
+      if (p.x < 0) p.x = w;
+      if (p.x > w) p.x = 0;
+
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  private rotateHomeMenu(dir: -1 | 1): void {
+    const n = this.homeMenuItems.length;
+    if (n === 0) return;
+    this.homeMenuIndex = (this.homeMenuIndex + dir + n) % n;
+    this.sound.playMove();
+    this.updateHomeMenuWheel();
+  }
+
+  private updateHomeMenuWheel(): void {
+    const n = this.homeMenuItems.length;
+    if (n === 0) return;
+    for (let i = 0; i < n; i++) {
+      const item = this.homeMenuItems[i];
+      let diff = i - this.homeMenuIndex;
+      if (diff > n / 2) diff -= n;
+      if (diff < -n / 2) diff += n;
+
+      const angle = diff * 0.36;
+      const y = Math.sin(angle) * 218;
+      const x = (1 - Math.cos(angle)) * 110 + (diff === 0 ? 12 : 26);
+      const scale = diff === 0 ? 1.12 : Math.max(0.64, 0.85 - Math.abs(diff) * 0.1);
+      const rotZ = diff * 2.6;
+      const opacity = Math.abs(diff) > 3 ? 0 : diff === 0 ? 1 : Math.max(0.18, 0.82 - Math.abs(diff) * 0.21);
+
+      item.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${scale.toFixed(3)}) rotate(${rotZ.toFixed(1)}deg)`;
+      item.style.opacity = String(opacity);
+      item.style.zIndex = String(20 - Math.abs(diff));
+      item.classList.toggle('wheel-selected', diff === 0);
+    }
   }
 
   private enterGameFromHome(mode: GameMode, isVsCpu: boolean = false, isVsOnline: boolean = false): void {
@@ -1552,6 +1736,7 @@ class AppController {
     void this.persistAllSettings(false);
     this.updateBgmUI();
     this.updateStatsUI();
+    this.sound.startMenuBgm();
   }
 
   private openOnlineModal(): void {
@@ -1887,6 +2072,25 @@ class AppController {
       this.enterGameFromHome('normal');
       this.homeBtnNormal.blur();
     });
+
+    this.homeScreenEl.addEventListener(
+      'wheel',
+      (e) => {
+        if (!this.isOnHomeScreen || this.isOnOpeningScreen || this.isSettingsOpen || this.isAchievementsOpen || this.isVsSetupOpen || this.isOnlineModalOpen) {
+          return;
+        }
+        e.preventDefault();
+        const now = performance.now();
+        if (now - this.lastHomeWheelTime < 65) return;
+        this.lastHomeWheelTime = now;
+        if (e.deltaY > 0) {
+          this.rotateHomeMenu(1);
+        } else if (e.deltaY < 0) {
+          this.rotateHomeMenu(-1);
+        }
+      },
+      { passive: false }
+    );
 
     this.homeBtnDopamine.addEventListener('click', () => {
       this.enterGameFromHome('dopamine', false);
@@ -2392,6 +2596,17 @@ class AppController {
     }
 
     if (this.isOnHomeScreen) {
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+        e.preventDefault();
+        this.rotateHomeMenu(-1);
+      } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+        e.preventDefault();
+        this.rotateHomeMenu(1);
+      } else if ((e.code === 'Enter' || e.code === 'Space') && !e.repeat) {
+        e.preventDefault();
+        const selected = this.homeMenuItems[this.homeMenuIndex];
+        if (selected) selected.click();
+      }
       return;
     }
 
@@ -2565,6 +2780,8 @@ class AppController {
 
     if (this.isOnOpeningScreen) {
       this.updateAndRenderOpeningCanvas(dtMs);
+    } else if (this.isOnHomeScreen) {
+      this.updateAndRenderHomeBg(dtMs);
     }
 
     if (this.restartKeyHeld && !this.isSettingsOpen && !this.isAchievementsOpen && !this.isOnHomeScreen) {

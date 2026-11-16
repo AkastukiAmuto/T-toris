@@ -91,6 +91,7 @@
        HOME MENU SCREEN (Arcade Title Screen Layout)
        ========================================== -->
   <div id="home-screen" class="home-screen">
+    <canvas id="home-bg-canvas" class="home-bg-canvas" width="1280" height="860"></canvas>
     <div class="home-ambient-grid"></div>
 
     <div class="home-arcade-layout">
@@ -130,8 +131,9 @@
         </div>
       </div>
 
-      <!-- Right Column: Classic Vertical Game Menu List -->
-      <nav class="home-menu-list" aria-label="Main Menu">
+      <!-- Right Column: Arcade Rotary Wheel Menu -->
+      <div class="home-menu-wheel-wrap">
+        <nav class="home-menu-list" id="home-menu-list" aria-label="Main Menu">
         <button id="home-btn-normal" class="arcade-menu-item mode-normal-item">
           <span class="menu-cursor">▶</span>
           <div class="menu-item-main">
@@ -232,7 +234,9 @@
             </div>
           </div>
         </button>
-      </nav>
+        </nav>
+        <div class="home-wheel-hint">▲ ▼ / マウスホイールで回転 ・ CLICK / ENTER で決定</div>
+      </div>
     </div>
   </div>
 
@@ -511,6 +515,18 @@
                   </span>
                 </div>
                 <span class="theme-card-desc">クリーンなライト背景＆フラット角丸ブロック</span>
+              </button>
+
+              <button class="theme-card" data-theme-target="minimalDark">
+                <div class="theme-card-top">
+                  <span class="theme-card-name">MODERN DARK</span>
+                  <span class="theme-swatches">
+                    <i style="background:#22d3ee"></i>
+                    <i style="background:#a78bfa"></i>
+                    <i style="background:#fb7185"></i>
+                  </span>
+                </div>
+                <span class="theme-card-desc">目に優しいダークスレート＆フラット角丸ブロック</span>
               </button>
 
               <button class="theme-card" data-theme-target="gold" id="theme-card-gold">

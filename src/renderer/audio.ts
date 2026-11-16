@@ -591,6 +591,44 @@ const TRACK_SEQUENCES: Record<BgmTrackId, NoteStep[]> = {
   galaxy_finale: SEQ_GALAXY_FINALE,
 };
 
+// Main Menu Lobby Theme: Tactical OS Cyber Lounge (Am9 -> Fmaj7 -> G6 -> Em7, 112 BPM)
+const SEQ_MENU_THEME: NoteStep[] = [
+  // Bar 1-2: Am9
+  { lead: N.E5,  bass: N.A2, arp: N.C5,  dur: 4 },
+  { lead: N.B4,  bass: N.A2, arp: N.E5,  dur: 4 },
+  { lead: N.C5,  bass: N.A2, arp: N.G4,  dur: 4 },
+  { lead: N.E5,  bass: N.A2, arp: N.B4,  dur: 4 },
+  { lead: N.G5,  bass: N.A2, arp: N.C5,  dur: 6 },
+  { lead: N.E5,  bass: N.A2, arp: N.B4,  dur: 2 },
+  { lead: N.C5,  bass: N.A2, arp: N.E5,  dur: 8 },
+
+  // Bar 3-4: Fmaj7
+  { lead: N.C5,  bass: N.F3, arp: N.A4,  dur: 4 },
+  { lead: N.A4,  bass: N.F3, arp: N.E5,  dur: 4 },
+  { lead: N.E5,  bass: N.F3, arp: N.C5,  dur: 4 },
+  { lead: N.F5,  bass: N.F3, arp: N.A4,  dur: 4 },
+  { lead: N.E5,  bass: N.F3, arp: N.C5,  dur: 8 },
+  { lead: N.C5,  bass: N.F3, arp: N.A4,  dur: 8 },
+
+  // Bar 5-6: G6 -> Em7
+  { lead: N.D5,  bass: N.G3, arp: N.B4,  dur: 4 },
+  { lead: N.E5,  bass: N.G3, arp: N.D5,  dur: 4 },
+  { lead: N.G5,  bass: N.G3, arp: N.B4,  dur: 4 },
+  { lead: N.D5,  bass: N.G3, arp: N.E5,  dur: 4 },
+  { lead: N.B4,  bass: N.E3, arp: N.G4,  dur: 6 },
+  { lead: N.D5,  bass: N.E3, arp: N.B4,  dur: 2 },
+  { lead: N.E5,  bass: N.E3, arp: N.G4,  dur: 8 },
+
+  // Bar 7-8: Dm9 -> E7sus4 -> E7
+  { lead: N.F5,  bass: N.D3, arp: N.A4,  dur: 4 },
+  { lead: N.E5,  bass: N.D3, arp: N.C5,  dur: 4 },
+  { lead: N.D5,  bass: N.D3, arp: N.A4,  dur: 4 },
+  { lead: N.C5,  bass: N.D3, arp: N.F5,  dur: 4 },
+  { lead: N.B4,  bass: N.E3, arp: N.E5,  dur: 8 },
+  { lead: N.Ab4, bass: N.E3, arp: N.B4,  dur: 6 },
+  { lead: N.R,   bass: N.E3, arp: N.E5,  dur: 2 },
+];
+
 export class SoundEngine {
   private ctx: AudioContext | null = null;
   private masterBus: DynamicsCompressorNode | null = null;
@@ -607,6 +645,7 @@ export class SoundEngine {
   private level: number = 1;
 
   private isPlayingBgm: boolean = false;
+  private isMenuBgm: boolean = false;
   private stepIndex: number = 0;
   private nextNoteTime: number = 0;
   private timerId: number | null = null;
@@ -748,6 +787,11 @@ export class SoundEngine {
     const ctx = this.ensureContext();
     if (!ctx) return;
 
+    if (this.isMenuBgm) {
+      this.stopBgm();
+    }
+    this.isMenuBgm = false;
+
     if (resetPosition) {
       this.stepIndex = 0;
     }
@@ -758,8 +802,23 @@ export class SoundEngine {
     this.scheduleBgm();
   }
 
+  public startMenuBgm(): void {
+    if (!this.bgmEnabled) return;
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+
+    if (this.isPlayingBgm && this.isMenuBgm) return;
+    this.stopBgm();
+    this.isMenuBgm = true;
+    this.stepIndex = 0;
+    this.isPlayingBgm = true;
+    this.nextNoteTime = ctx.currentTime + 0.06;
+    this.scheduleBgm();
+  }
+
   public stopBgm(): void {
     this.isPlayingBgm = false;
+    this.isMenuBgm = false;
     if (this.timerId !== null) {
       window.clearTimeout(this.timerId);
       this.timerId = null;
@@ -771,15 +830,23 @@ export class SoundEngine {
     const ctx = this.ensureContext();
     if (!ctx) return;
 
-    const seq = TRACK_SEQUENCES[this.bgmTrack] || SEQ_KOROBEINIKI;
+    const seq = this.isMenuBgm
+      ? SEQ_MENU_THEME
+      : TRACK_SEQUENCES[this.bgmTrack] || SEQ_KOROBEINIKI;
     const trackDef = BGM_TRACKS.find((t) => t.id === this.bgmTrack);
-    const trackBaseBpm = trackDef ? trackDef.baseBpm : 138;
+    const trackBaseBpm = this.isMenuBgm ? 112 : trackDef ? trackDef.baseBpm : 138;
 
     while (this.nextNoteTime < ctx.currentTime + 0.12) {
       const safeIdx = this.stepIndex % seq.length;
       const step = seq[safeIdx];
-      const baseBpm = this.mode === 'dopamine' ? trackBaseBpm + 18 : trackBaseBpm;
-      const bpm = Math.min(230, baseBpm + (this.level - 1) * 4.0);
+      const baseBpm = this.isMenuBgm
+        ? 112
+        : this.mode === 'dopamine'
+          ? trackBaseBpm + 18
+          : trackBaseBpm;
+      const bpm = this.isMenuBgm
+        ? 112
+        : Math.min(230, baseBpm + (this.level - 1) * 4.0);
       const sixteenthSec = 60 / bpm / 4;
       const durationSec = step.dur * sixteenthSec;
 
@@ -802,7 +869,10 @@ export class SoundEngine {
     let bassWave: OscillatorType =
       this.theme === 'retro' ? 'triangle' : this.theme === 'neon' ? 'square' : 'sine';
 
-    if (this.bgmTrack === 'chiptune_party') {
+    if (this.isMenuBgm) {
+      leadWave = 'triangle';
+      bassWave = 'sine';
+    } else if (this.bgmTrack === 'chiptune_party') {
       leadWave = 'square';
       bassWave = 'triangle';
     } else if (this.bgmTrack === 'boss_battle') {
