@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+  <title>T-TORIS // Desktop Tetris</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-theme="neon" data-mode="normal">
+  <!-- Full-Window Dopamine Overdrive FX Canvas -->
+  <canvas id="fx-canvas" class="fx-canvas" width="1040" height="840"></canvas>
+
+  <!-- ==========================================
+       ACHIEVEMENT UNLOCK TOAST NOTIFICATION
+       ========================================== -->
+  <div id="achievement-toast" class="achievement-toast hidden">
+    <div class="toast-icon" id="toast-icon">🏆</div>
+    <div class="toast-body">
+      <span class="toast-badge">ACHIEVEMENT UNLOCKED! // 実績解除</span>
+      <strong class="toast-title" id="toast-title">四連撃の目覚め</strong>
+      <span class="toast-reward" id="toast-reward">🎵 新BGM解放: 02. CYBERPUNK OVERDRIVE</span>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       ARCADE BOOT OPENING SCREEN
+       ========================================== -->
+  <div id="opening-screen" class="opening-screen">
+    <canvas id="opening-canvas" class="opening-canvas" width="1280" height="860"></canvas>
+    <div id="opening-flash" class="opening-flash"></div>
+    <div class="opening-scanlines"></div>
+    <div class="opening-grid-bg"></div>
+
+    <!-- Phase 1: High-Speed Arcade BIOS & Overdrive Core Charge -->
+    <div id="opening-boot-box" class="opening-boot-box">
+      <div class="boot-header">
+        <span class="boot-dot red"></span>
+        <span class="boot-dot yellow"></span>
+        <span class="boot-dot green"></span>
+        <span class="boot-header-title">⚡ T-TORIS OVERDRIVE SYSTEM // IGNITION SEQUENCE</span>
+      </div>
+      <div id="opening-boot-lines" class="opening-boot-lines"></div>
+      <div class="boot-charge-wrap">
+        <div class="boot-charge-bar" id="opening-boot-bar"></div>
+      </div>
+    </div>
+
+    <!-- Phase 2: Supernova Logo Impact & Interactive PRESS START Button -->
+    <div id="opening-logo-stage" class="opening-logo-stage hidden">
+      <div class="opening-halo-ring ring-1" aria-hidden="true"></div>
+      <div class="opening-halo-ring ring-2" aria-hidden="true"></div>
+
+      <div class="opening-tetromino-row" aria-hidden="true">
+        <span class="op-mino m-i">I</span>
+        <span class="op-mino m-t">T</span>
+        <span class="op-mino m-o">O</span>
+        <span class="op-mino m-s">S</span>
+        <span class="op-mino m-z">Z</span>
+        <span class="op-mino m-j">J</span>
+        <span class="op-mino m-l">L</span>
+      </div>
+
+      <div class="opening-edition-banner">★ SUPER DOPAMINE ARCADE EDITION ★</div>
+      <div class="opening-title-wrap">
+        <h1 class="opening-main-title" data-text="T-TORIS">T-TORIS</h1>
+      </div>
+      <p class="opening-main-sub">HIGH-VOLTAGE TETROMINO &amp; OMEGA BLAST ENGINE</p>
+
+      <button id="opening-enter-btn" class="opening-enter-btn">
+        <span class="enter-btn-glow"></span>
+        <span class="enter-btn-icon">⚡</span>
+        <span class="enter-btn-text">PRESS START // メインメニューへ</span>
+        <span class="enter-btn-sub">CLICK OR PRESS [ENTER / SPACE]</span>
+      </button>
+    </div>
+
+    <button id="opening-skip-btn" class="opening-skip-btn" title="演出をスキップしてロゴを表示">
+      SKIP INTRO ⏭
+    </button>
+  </div>
+
+  <!-- ==========================================
+       HOME MENU SCREEN (Arcade Title Screen Layout)
+       ========================================== -->
+  <div id="home-screen" class="home-screen">
+    <div class="home-ambient-grid"></div>
+
+    <div class="home-arcade-layout">
+      <!-- Left Column: Title Emblem + Tetromino Art + Jukebox Bar -->
+      <div class="home-title-pane">
+        <div class="title-deco-blocks" aria-hidden="true">
+          <span class="deco-b b-cyan"></span>
+          <span class="deco-b b-magenta"></span>
+          <span class="deco-b b-yellow"></span>
+          <span class="deco-b b-green"></span>
+        </div>
+
+        <div class="home-brand-lockup">
+          <div class="home-version-row">
+            <span class="home-version-tag">ARCADE EDITION // VER 1.3</span>
+            <button id="home-replay-op-btn" class="replay-op-btn" title="オープニング演出を再生">🎬 OP再生</button>
+          </div>
+          <h1 class="home-title">T-TORIS</h1>
+          <p class="home-subtitle">HIGH-SPEED DESKTOP TETROMINO ACTION</p>
+        </div>
+
+        <!-- Jukebox / Now Selected BGM Widget on Title Screen -->
+        <div class="home-jukebox-box">
+          <div class="jukebox-top">
+            <span class="jukebox-label">🎵 SELECTED BGM</span>
+            <button id="home-bgm-preview-btn" class="jukebox-preview-btn">▶ 試聴</button>
+          </div>
+          <div class="jukebox-controls">
+            <button id="home-bgm-prev" class="jukebox-arrow-btn" title="前の曲">◀</button>
+            <div class="jukebox-track-info">
+              <strong id="home-bgm-title">01. KOROBEINIKI</strong>
+              <span id="home-bgm-sub">王道クラシック・テトリス A-Type</span>
+            </div>
+            <button id="home-bgm-next" class="jukebox-arrow-btn" title="次の曲">▶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Classic Vertical Game Menu List -->
+      <nav class="home-menu-list" aria-label="Main Menu">
+        <button id="home-btn-normal" class="arcade-menu-item mode-normal-item">
+          <span class="menu-cursor">▶</span>
+          <div class="menu-item-main">
+            <span class="menu-item-index">01</span>
+            <div class="menu-item-texts">
+              <strong class="menu-item-title">NORMAL MODE</strong>
+              <span class="menu-item-sub">通常モード（スタンダード）</span>
+            </div>
+          </div>
+          <div class="menu-item-meta">
+            <span class="meta-label">BEST</span>
+            <strong id="home-highscore-normal">0</strong>
+          </div>
+        </button>
+
+        <button id="home-btn-dopamine" class="arcade-menu-item mode-dopamine-item">
+          <span class="menu-cursor">▶</span>
+          <div class="menu-item-main">
+            <span class="menu-item-index">02</span>
+            <div class="menu-item-texts">
+              <strong class="menu-item-title">⚡ DOPAMINE MODE</strong>
+              <span class="menu-item-sub">ドパガキモード（超演出＆5×5爆破ボム）</span>
+            </div>
+          </div>
+          <div class="menu-item-meta">
+            <span class="meta-label">BEST</span>
+            <strong id="home-highscore-dopamine">0</strong>
+          </div>
+        </button>
+
+        <button id="home-btn-vs-cpu" class="arcade-menu-item mode-vscpu-item">
+          <span class="menu-cursor">▶</span>
+          <div class="menu-item-main">
+            <span class="menu-item-index">03</span>
+            <div class="menu-item-texts">
+              <strong class="menu-item-title">🤖 VS CPU BATTLE</strong>
+              <span class="menu-item-sub">AI対戦モード（難易度Lv.1〜5 / ドパガキ対戦対応）</span>
+            </div>
+          </div>
+          <div class="menu-item-meta">
+            <span class="meta-label">LEVELS</span>
+            <strong>LV.1 - 5</strong>
+          </div>
+        </button>
+
+        <button id="home-btn-vs-online" class="arcade-menu-item mode-online-item">
+          <span class="menu-cursor">▶</span>
+          <div class="menu-item-main">
+            <span class="menu-item-index">04</span>
+            <div class="menu-item-texts">
+              <strong class="menu-item-title">🌐 VS ONLINE (INVITE CODE)</strong>
+              <span class="menu-item-sub">サーバー不要・招待コードコピペでP2P直接対戦！</span>
+            </div>
+          </div>
+          <div class="menu-item-meta">
+            <span class="meta-label">DIRECT</span>
+            <strong>P2P VS</strong>
+          </div>
+        </button>
+
+        <button id="home-btn-achievements" class="arcade-menu-item">
+          <span class="menu-cursor">▶</span>
+          <div class="menu-item-main">
+            <span class="menu-item-index">05</span>
+            <div class="menu-item-texts">
+              <strong class="menu-item-title">🏆 ACHIEVEMENTS &amp; BGM</strong>
+              <span class="menu-item-sub">実績確認・BGMジュークボックス</span>
+            </div>
+          </div>
+          <div class="menu-item-meta">
+            <span class="meta-label">UNLOCKED</span>
+            <strong id="home-achievement-count">1 / 6</strong>
+          </div>
+        </button>
+
+        <button id="home-btn-settings" class="arcade-menu-item">
+          <span class="menu-cursor">▶</span>
+          <div class="menu-item-main">
+            <span class="menu-item-index">06</span>
+            <div class="menu-item-texts">
+              <strong class="menu-item-title">⚙ SETTINGS</strong>
+              <span class="menu-item-sub">キーバインド・テーマ・サウンド設定</span>
+            </div>
+          </div>
+          <div class="menu-item-meta">
+            <span class="meta-label">THEME</span>
+            <strong id="home-theme-name">NEON CYBER</strong>
+          </div>
+        </button>
+
+        <button id="home-btn-quit" class="arcade-menu-item quit-item">
+          <span class="menu-cursor">▶</span>
+          <div class="menu-item-main">
+            <span class="menu-item-index">07</span>
+            <div class="menu-item-texts">
+              <strong class="menu-item-title">✖ EXIT GAME</strong>
+              <span class="menu-item-sub">アプリケーションを終了</span>
+            </div>
+          </div>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       IN-GAME ARENA SCREEN
+       ========================================== -->
+  <div class="app-shell hidden" id="app-shell">
+    <!-- Top Header -->
+    <header class="top-bar">
+      <div class="brand">
+        <button id="btn-back-home-top" class="back-home-btn" title="ホームメニューへ戻る">
+          🏠 HOME
+        </button>
+        <span class="brand-badge">T</span>
+        <div class="brand-titles">
+          <h1>T-TORIS</h1>
+          <span class="brand-sub">DESKTOP TETROMINO ENGINE</span>
+        </div>
+      </div>
+
+      <!-- Mode Switcher in Header -->
+      <div class="mode-switcher" role="group" aria-label="Game Mode Selector">
+        <button class="mode-btn active" data-mode-target="normal">🎯 NORMAL (通常)</button>
+        <button class="mode-btn dopamine-tab" data-mode-target="dopamine">⚡ DOPAMINE (ドパガキ)</button>
+      </div>
+
+      <div class="header-actions">
+        <span class="current-theme-pill" id="header-theme-name">THEME: NEON CYBER</span>
+        <button id="btn-open-settings" class="settings-trigger-btn">
+          ⚙ 設定 (SETTINGS)
+        </button>
+      </div>
+    </header>
+
+    <!-- Main 3-Column Arena -->
+    <main class="arena">
+      <!-- Left Sidebar: Hold + Stats + Controls -->
+      <aside class="side-panel left-panel">
+        <section class="card hold-card">
+          <div class="card-header">
+            <h2>HOLD</h2>
+            <span class="key-hint" id="hint-hold-key">C</span>
+          </div>
+          <div class="mini-canvas-wrap">
+            <canvas id="hold-canvas" width="130" height="90"></canvas>
+          </div>
+        </section>
+
+        <section class="card stats-card">
+          <div class="stat-row highlight">
+            <span class="stat-label">SCORE</span>
+            <span class="stat-value" id="stat-score">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">HIGH SCORE</span>
+            <span class="stat-value" id="stat-highscore">0</span>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-box">
+              <span class="stat-label">LEVEL</span>
+              <span class="stat-value" id="stat-level">1</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">LINES</span>
+              <span class="stat-value" id="stat-lines">0</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">COMBO</span>
+              <span class="stat-value" id="stat-combo">-</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card controls-card">
+          <div class="card-header">
+            <h2>CONTROLS</h2>
+            <button id="btn-edit-keys-shortcut" class="link-btn">変更</button>
+          </div>
+          <ul class="controls-list">
+            <li><span>左右移動</span><div><kbd id="kbd-moveLeft">←</kbd><kbd id="kbd-moveRight">→</kbd></div></li>
+            <li><span>ソフトドロップ</span><kbd id="kbd-softDrop">↓</kbd></li>
+            <li><span>ハードドロップ</span><kbd id="kbd-hardDrop">SPACE</kbd></li>
+            <li><span>回転 (右 / 左)</span><div><kbd id="kbd-rotateCW">↑</kbd><kbd id="kbd-rotateCCW">Z</kbd></div></li>
+            <li><span>ホールド</span><kbd id="kbd-hold">C</kbd></li>
+            <li><span>一時停止 / 再開(長押し)</span><div><kbd id="kbd-pause">P</kbd><kbd id="kbd-restart">R</kbd></div></li>
+          </ul>
+        </section>
+      </aside>
+
+      <!-- Center Playfield -->
+      <section class="board-container">
+        <div class="board-with-garbage">
+          <!-- Player Pending Garbage Meter (shown in VS CPU mode) -->
+          <div class="garbage-meter-wrap" id="garbage-meter-player-wrap" title="予告お邪魔ライン">
+            <div class="garbage-meter-track">
+              <div class="garbage-meter-fill" id="garbage-meter-player-fill" style="height: 0%"></div>
+            </div>
+            <span class="garbage-meter-count" id="garbage-meter-player-count">0</span>
+          </div>
+
+          <div class="board-frame" id="board-frame">
+          <canvas id="board-canvas" width="320" height="640"></canvas>
+          <div class="scanline-overlay"></div>
+
+          <!-- Hold-to-Restart Indicator -->
+          <div id="restart-hold-indicator" class="restart-hold-indicator hidden">
+            <span class="restart-hold-label" id="restart-hold-label">🔄 HOLD R TO RESTART...</span>
+            <div class="restart-hold-bar-track">
+              <div class="restart-hold-bar-fill" id="restart-hold-bar-fill"></div>
+            </div>
+          </div>
+
+          <!-- Start / Pause / GameOver Overlay -->
+          <div id="board-overlay" class="board-overlay hidden">
+            <div class="overlay-card">
+              <span class="overlay-mode-badge" id="overlay-mode-badge">NORMAL MODE</span>
+              <h2 id="overlay-title">PAUSED</h2>
+              <p id="overlay-subtitle">PRESS P OR CLICK TO RESUME</p>
+
+              <button id="overlay-action-btn" class="primary-btn">RESUME</button>
+              <button id="overlay-settings-btn" class="ctrl-btn overlay-sub-btn">⚙ 設定を開く (SETTINGS)</button>
+              <button id="overlay-home-btn" class="ctrl-btn overlay-sub-btn">🏠 ホームメニューへ戻る</button>
+            </div>
+          </div>
+        </div>
+        </div>
+      </section>
+
+      <!-- Right Sidebar: Next Queue + Dopamine Overdrive Gauge + Quick Actions -->
+      <aside class="side-panel right-panel">
+        <section class="card next-card">
+          <div class="card-header">
+            <h2>NEXT QUEUE</h2>
+            <span class="key-hint" id="next-queue-badge">▲ 順送り</span>
+          </div>
+          <div class="mini-canvas-wrap next-wrap">
+            <canvas id="next-canvas" width="180" height="254"></canvas>
+          </div>
+        </section>
+
+        <!-- Dopamine Overdrive Gauge Card -->
+        <section class="card overdrive-card" id="overdrive-card">
+          <div class="card-header">
+            <h2>⚡ OVERDRIVE</h2>
+            <span class="fever-badge" id="stat-multiplier">FEVER x1</span>
+          </div>
+          <div class="gauge-track">
+            <div class="gauge-fill" id="overdrive-gauge-fill" style="width: 0%"></div>
+            <span class="gauge-text" id="overdrive-gauge-text">0%</span>
+          </div>
+          <p class="overdrive-desc" id="overdrive-status-text">
+            ライン消去でチャージ！100%で5×5範囲爆破ボム出現
+          </p>
+        </section>
+
+        <section class="card settings-card">
+          <div class="card-header">
+            <h2>QUICK CONTROL</h2>
+          </div>
+
+          <div class="action-buttons">
+            <button id="btn-pause" class="ctrl-btn">PAUSE</button>
+            <button id="btn-restart" class="ctrl-btn">RESTART</button>
+          </div>
+
+          <div class="action-buttons">
+            <button id="btn-ghost" class="ctrl-btn btn-active">GHOST: ON</button>
+            <button id="btn-open-settings-side" class="ctrl-btn">⚙ 設定</button>
+          </div>
+        </section>
+      </aside>
+
+      <!-- CPU Opponent Panel (Visible only in VS CPU mode) -->
+      <section class="cpu-panel" id="cpu-panel">
+        <div class="cpu-header-card card">
+          <div class="cpu-identity">
+            <span class="cpu-lv-badge" id="cpu-lv-badge">LV.3</span>
+            <div class="cpu-title-wrap">
+              <strong id="cpu-name-label">CHALLENGER</strong>
+              <span class="cpu-sub-label" id="cpu-score-label">SCORE: 0 / LINES: 0</span>
+            </div>
+          </div>
+          <div class="vs-scoreboard" id="vs-scoreboard">
+            <span class="vs-win-tag">YOU <strong id="vs-player-wins">0</strong></span>
+            <span class="vs-sep">-</span>
+            <span class="vs-win-tag"><strong id="vs-cpu-wins">0</strong> CPU</span>
+          </div>
+        </div>
+
+        <div class="cpu-arena-row">
+          <!-- CPU Mini Hold & Next -->
+          <div class="cpu-mini-col">
+            <section class="card cpu-mini-card">
+              <div class="card-header"><h2>HOLD</h2></div>
+              <div class="mini-canvas-wrap">
+                <canvas id="cpu-hold-canvas" width="130" height="90"></canvas>
+              </div>
+            </section>
+            <section class="card cpu-mini-card cpu-next-card">
+              <div class="card-header"><h2>NEXT</h2></div>
+              <div class="mini-canvas-wrap">
+                <canvas id="cpu-next-canvas" width="180" height="254"></canvas>
+              </div>
+            </section>
+          </div>
+
+          <!-- CPU Board + Pending Garbage Meter -->
+          <div class="board-with-garbage cpu-board-with-garbage">
+            <div class="garbage-meter-wrap" id="garbage-meter-cpu-wrap" title="CPUへの予告お邪魔ライン">
+              <div class="garbage-meter-track">
+                <div class="garbage-meter-fill" id="garbage-meter-cpu-fill" style="height: 0%"></div>
+              </div>
+              <span class="garbage-meter-count" id="garbage-meter-cpu-count">0</span>
+            </div>
+
+            <div class="board-frame cpu-board-frame" id="cpu-board-frame">
+              <canvas id="cpu-board-canvas" width="320" height="640"></canvas>
+              <div class="scanline-overlay"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       SETTINGS MODAL (Shared between Home & Game)
+       ========================================== -->
+  <div id="settings-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div>
+          <h2 id="settings-modal-title">⚙ SETTINGS // 設定</h2>
+          <span class="modal-sub">テーマ・表示・サウンド・キーバインドのカスタマイズ</span>
+        </div>
+        <button id="btn-close-settings" class="modal-close-btn" title="閉じる (Esc)">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Left Column in Modal: Theme + Display + Audio -->
+        <div class="modal-col">
+          <div class="settings-section">
+            <h3 class="section-title">デザインテーマ (THEME)</h3>
+            <div class="theme-cards">
+              <button class="theme-card active" data-theme-target="neon">
+                <div class="theme-card-top">
+                  <span class="theme-card-name">NEON CYBER</span>
+                  <span class="theme-swatches">
+                    <i style="background:#00f3ff"></i>
+                    <i style="background:#d900ff"></i>
+                    <i style="background:#00ff66"></i>
+                  </span>
+                </div>
+                <span class="theme-card-desc">ダーク背景＋ネオン発光＆レーザーエフェクト</span>
+              </button>
+
+              <button class="theme-card" data-theme-target="retro">
+                <div class="theme-card-top">
+                  <span class="theme-card-name">CLASSIC RETRO</span>
+                  <span class="theme-swatches">
+                    <i style="background:#9bbc0f"></i>
+                    <i style="background:#ffd828"></i>
+                    <i style="background:#f83838"></i>
+                  </span>
+                </div>
+                <span class="theme-card-desc">8-bitアーケード調ベベルブロック＆チップチューン音源</span>
+              </button>
+
+              <button class="theme-card" data-theme-target="minimal">
+                <div class="theme-card-top">
+                  <span class="theme-card-name">MODERN MINIMAL</span>
+                  <span class="theme-swatches">
+                    <i style="background:#06b6d4"></i>
+                    <i style="background:#8b5cf6"></i>
+                    <i style="background:#f43f5e"></i>
+                  </span>
+                </div>
+                <span class="theme-card-desc">クリーンなライト背景＆フラット角丸ブロック</span>
+              </button>
+
+              <button class="theme-card" data-theme-target="gold" id="theme-card-gold">
+                <div class="theme-card-top">
+                  <span class="theme-card-name" id="theme-name-gold">🔒 ROYAL GOLD</span>
+                  <span class="theme-swatches">
+                    <i style="background:#ffd700"></i>
+                    <i style="background:#ff8c00"></i>
+                    <i style="background:#50c878"></i>
+                  </span>
+                </div>
+                <span class="theme-card-desc" id="theme-desc-gold">実績「脳汁ジャンキー」解除で解放される黄金カジノテーマ</span>
+              </button>
+
+              <button class="theme-card" data-theme-target="sakura" id="theme-card-sakura">
+                <div class="theme-card-top">
+                  <span class="theme-card-name" id="theme-name-sakura">🔒 CYBER SAKURA</span>
+                  <span class="theme-swatches">
+                    <i style="background:#ff77bc"></i>
+                    <i style="background:#d946ef"></i>
+                    <i style="background:#34d399"></i>
+                  </span>
+                </div>
+                <span class="theme-card-desc" id="theme-desc-sakura">実績「音速の領域」解除で解放される電脳夜桜テーマ</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3 class="section-title">ゲーム表示・サウンド (DISPLAY &amp; AUDIO)</h3>
+            <div class="setting-item-row">
+              <span>ゴーストブロック（落下予測位置）</span>
+              <button id="modal-btn-ghost" class="ctrl-btn small-btn btn-active">ON</button>
+            </div>
+
+            <div class="audio-group">
+              <div class="audio-header">
+                <button id="btn-bgm" class="ctrl-btn small-btn btn-active">BGM: ON</button>
+                <input id="slider-bgm" type="range" min="0" max="100" value="35" aria-label="BGM Volume" />
+              </div>
+              <div class="audio-header">
+                <button id="btn-se" class="ctrl-btn small-btn btn-active">SE: ON</button>
+                <input id="slider-se" type="range" min="0" max="100" value="60" aria-label="SE Volume" />
+              </div>
+              <div class="setting-item-row bgm-select-row">
+                <span>🎵 BGMトラック</span>
+                <div class="modal-bgm-switcher">
+                  <button id="modal-bgm-prev" class="jukebox-arrow-btn">◀</button>
+                  <span id="modal-bgm-title" class="modal-bgm-name">01. KOROBEINIKI</span>
+                  <button id="modal-bgm-next" class="jukebox-arrow-btn">▶</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column in Modal: Key Bindings -->
+        <div class="modal-col">
+          <div class="settings-section keybind-section">
+            <div class="section-header-row">
+              <h3 class="section-title">キーバインド設定 (KEY BINDINGS)</h3>
+              <button id="btn-reset-keys" class="ctrl-btn small-btn">初期設定に戻す</button>
+            </div>
+            <p class="keybind-help">変更したい操作のボタンをクリックし、新しいキーを押してください（Escでキャンセル）。</p>
+
+            <div id="keybind-list" class="keybind-list">
+              <!-- Populated dynamically by AppController -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span id="save-status-msg" class="save-status-msg"></span>
+        <div class="modal-footer-btns">
+          <button id="btn-save-settings-only" class="ctrl-btn">💾 設定を保存</button>
+          <button id="btn-done-settings" class="primary-btn modal-done-btn">💾 保存して閉じる</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       ACHIEVEMENTS & BGM JUKEBOX MODAL
+       ========================================== -->
+  <div id="achievements-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="achievements-modal-title">
+    <div class="modal-window achievements-window">
+      <div class="modal-header">
+        <div>
+          <h2 id="achievements-modal-title">🏆 ACHIEVEMENTS &amp; BGM JUKEBOX</h2>
+          <span class="modal-sub">実績を解除すると新しいBGMトラックが選択・試聴できるようになります</span>
+        </div>
+        <button id="btn-close-achievements" class="modal-close-btn" title="閉じる (Esc)">✕</button>
+      </div>
+
+      <div class="achievements-summary-bar">
+        <span>実績コンプリート状況: <strong id="achievements-progress-text">1 / 16 UNLOCKED</strong></span>
+        <span>現在設定中のBGM: <strong id="achievements-current-bgm">01. KOROBEINIKI</strong></span>
+      </div>
+
+      <div class="achievements-filter-tabs" role="tablist">
+        <button class="ach-filter-btn active" data-ach-filter="all">すべて (ALL: 16)</button>
+        <button class="ach-filter-btn" data-ach-filter="reward">🎁 報酬あり (BGM・テーマ: 8)</button>
+        <button class="ach-filter-btn" data-ach-filter="trophy">🏆 トロフィーのみ (実績のみ: 8)</button>
+      </div>
+
+      <div id="achievements-list" class="achievements-list">
+        <!-- Populated dynamically by AppController -->
+      </div>
+
+      <div class="modal-footer">
+        <span class="modal-sub">※ 試聴中はBGMが流れます（閉じると自動停止します）</span>
+        <div class="modal-footer-btns">
+          <button id="btn-done-achievements" class="primary-btn modal-done-btn">閉じる (CLOSE)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       VS CPU SETUP MODAL
+       ========================================== -->
+  <div id="vs-setup-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="vs-setup-title">
+    <div class="modal-window vs-setup-window">
+      <div class="modal-header">
+        <div>
+          <h2 id="vs-setup-title">🤖 VS CPU BATTLE // 対戦設定</h2>
+          <span class="modal-sub">対戦ルールとCPUの強さ（Lv.1〜Lv.5）を選択してください</span>
+        </div>
+        <button id="btn-close-vs-setup" class="modal-close-btn" title="閉じる (Esc)">✕</button>
+      </div>
+
+      <div class="vs-setup-body">
+        <div class="settings-section">
+          <h3 class="section-title">1. 対戦ルール (BATTLE RULE)</h3>
+          <div class="vs-rule-grid">
+            <button class="vs-rule-card active" data-vs-rule="normal">
+              <strong>🎯 NORMAL VS</strong>
+              <span>標準テトリス対戦（ライン消去・Tetris・T-Spin・コンボでお邪魔送信＆相殺）</span>
+            </button>
+            <button class="vs-rule-card dopamine-rule" data-vs-rule="dopamine">
+              <strong>⚡ DOPAMINE VS</strong>
+              <span>ドパガキ対戦（超演出＋ゲージ100%で5×5爆破オメガボム＆大火力お邪魔！）</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3 class="section-title">2. CPU 難易度 (DIFFICULTY LV.1 - LV.5)</h3>
+          <div class="vs-cpu-level-list" id="vs-cpu-level-list">
+            <button class="vs-level-card" data-cpu-level="1">
+              <span class="vs-lv-pill lv1">LV.1</span>
+              <div class="vs-lv-info">
+                <strong>ROOKIE</strong>
+                <span>のんびり思考＆たまにミスする入門AI</span>
+              </div>
+            </button>
+            <button class="vs-level-card" data-cpu-level="2">
+              <span class="vs-lv-pill lv2">LV.2</span>
+              <div class="vs-lv-info">
+                <strong>CASUAL</strong>
+                <span>基本の穴埋めができる標準的なAI</span>
+              </div>
+            </button>
+            <button class="vs-level-card active" data-cpu-level="3">
+              <span class="vs-lv-pill lv3">LV.3</span>
+              <div class="vs-lv-info">
+                <strong>CHALLENGER</strong>
+                <span>ホールド活用＆安定積みの中級AI</span>
+              </div>
+            </button>
+            <button class="vs-level-card" data-cpu-level="4">
+              <span class="vs-lv-pill lv4">LV.4</span>
+              <div class="vs-lv-info">
+                <strong>MASTER</strong>
+                <span>2手先読み＋右端空けTetris狙いの強豪AI</span>
+              </div>
+            </button>
+            <button class="vs-level-card demon-card" data-cpu-level="5">
+              <span class="vs-lv-pill lv5">LV.5</span>
+              <div class="vs-lv-info">
+                <strong>DEMON GOD</strong>
+                <span>超高速2手先読み＋徹底Tetris＆高火力コンボの魔王AI</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="modal-sub">※ 勝利すると実績（Lv.3以上 / Lv.5撃破）が解除されます</span>
+        <div class="modal-footer-btns">
+          <button id="btn-cancel-vs-setup" class="ctrl-btn">キャンセル</button>
+          <button id="btn-start-vs-battle" class="primary-btn modal-done-btn">⚔️ BATTLE START!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       ONLINE P2P (INVITE CODE) MODAL
+       ========================================== -->
+  <div id="online-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="online-modal-title">
+    <div class="modal-window online-modal-window">
+      <div class="modal-header">
+        <div>
+          <h2 id="online-modal-title">🌐 VS ONLINE // 招待コードP2P対戦</h2>
+          <span class="modal-sub">サーバー不要！Discord等で招待コードを1往復コピペするだけで直接対戦できます</span>
+        </div>
+        <button id="btn-close-online" class="modal-close-btn" title="閉じる (Esc)">✕</button>
+      </div>
+
+      <div class="online-modal-body">
+        <div class="online-status-bar">
+          <span class="online-status-dot" id="online-status-dot"></span>
+          <span id="online-status-text">役割を選択してください（部屋を作る / 参加する）</span>
+        </div>
+
+        <div class="online-role-tabs" role="tablist">
+          <button class="online-tab-btn active" id="online-tab-host" data-online-tab="host">🏠 部屋を作る (HOST)</button>
+          <button class="online-tab-btn" id="online-tab-guest" data-online-tab="guest">🚪 部屋に参加する (GUEST)</button>
+        </div>
+
+        <!-- HOST PANEL -->
+        <div id="online-panel-host" class="online-panel">
+          <div class="settings-section">
+            <h3 class="section-title">1. 対戦ルールを選択</h3>
+            <div class="vs-rule-grid">
+              <button class="online-rule-card active" data-online-rule="normal">
+                <strong>🎯 NORMAL VS</strong>
+                <span>標準テトリス対戦（相殺あり）</span>
+              </button>
+              <button class="online-rule-card dopamine-rule" data-online-rule="dopamine">
+                <strong>⚡ DOPAMINE VS</strong>
+                <span>5×5オメガボム＆ドパガキ演出対戦</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3 class="section-title">2. 招待コードを作成して相手に送る</h3>
+            <div class="online-action-row">
+              <button id="btn-host-create-offer" class="primary-btn">招待コードを作成</button>
+              <button id="btn-host-copy-offer" class="ctrl-btn" disabled>📋 コピー</button>
+            </div>
+            <textarea id="host-offer-textarea" class="online-code-box" readonly placeholder="「招待コードを作成」を押すとここに TT1:... コードが生成されます"></textarea>
+          </div>
+
+          <div class="settings-section">
+            <h3 class="section-title">3. 相手から返ってきた参加コード (TT2:...) を貼り付け</h3>
+            <textarea id="host-answer-input" class="online-code-box" placeholder="相手から送られてきた TT2:... の参加コードをここに貼り付けてください"></textarea>
+            <div class="online-action-row">
+              <button id="btn-host-connect" class="primary-btn" disabled>⚔️ 接続して対戦スタート！</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- GUEST PANEL -->
+        <div id="online-panel-guest" class="online-panel hidden">
+          <div class="settings-section">
+            <h3 class="section-title">1. ホストの招待コード (TT1:...) を貼り付け</h3>
+            <textarea id="guest-offer-input" class="online-code-box" placeholder="ホストから送られてきた TT1:... の招待コードをここに貼り付けてください"></textarea>
+            <div class="online-action-row">
+              <button id="btn-guest-create-answer" class="primary-btn">参加コードを作成</button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3 class="section-title">2. 生成された参加コードをホストに送る（送ると自動で対戦開始します）</h3>
+            <div class="online-action-row">
+              <button id="btn-guest-copy-answer" class="ctrl-btn" disabled>📋 参加コードをコピー</button>
+            </div>
+            <textarea id="guest-answer-textarea" class="online-code-box" readonly placeholder="「参加コードを作成」を押すとここに TT2:... コードが生成されます"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="modal-sub">※ 一部の厳しい回線(企業FW・一部テザリング)では直接P2P接続できない場合があります</span>
+        <div class="modal-footer-btns">
+          <button id="btn-cancel-online" class="ctrl-btn">閉じる</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./dist/renderer/index.js"></script>
+</body>
+</html>
