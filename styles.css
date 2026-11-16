@@ -2762,3 +2762,54 @@ body.vs-cpu-active .controls-card {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
 }
+
+/* G.U.N.D.A.M. OS Style Acronym Boot Styling */
+.boot-line.acro-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: Consolas, 'Courier New', monospace;
+}
+
+.acro-word {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: pre;
+}
+
+.acro-init {
+  display: inline-block;
+  font-size: 1.55em;
+  font-weight: 900;
+  color: #00f0ff;
+  text-shadow: 0 0 12px #00f0ff, 0 0 24px #ff2afc;
+  animation: acroInitFlash 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.acro-rest {
+  color: #dbeafe;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.sub-acro {
+  color: #00f0ff;
+  font-weight: 900;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.85);
+}
+
+@keyframes acroInitFlash {
+  0% {
+    opacity: 0;
+    transform: scale(2.1) translateX(-6px);
+    color: #ffffff;
+    text-shadow: 0 0 28px #ffffff, 0 0 42px #00f0ff;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+    color: #00f0ff;
+    text-shadow: 0 0 12px #00f0ff, 0 0 24px #ff2afc;
+  }
+}

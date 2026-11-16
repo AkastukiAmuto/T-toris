@@ -675,8 +675,8 @@ class AppController {
     if (!window.storageApi?.getAppInfo) return;
     try {
       const info = await window.storageApi.getAppInfo();
-      const ver = info.version || '1.4.0';
-      this.homeVersionTagEl.textContent = `ARCADE EDITION // VER ${ver}`;
+      const ver = info.version || '1.5.0';
+      this.homeVersionTagEl.textContent = `T.E.T.R.I.S. OS // VER ${ver}`;
 
       if (!info.githubRepo) return;
       const res = await fetch(`https://api.github.com/repos/${info.githubRepo}/releases/latest`, {
@@ -1431,21 +1431,21 @@ class AppController {
     this.openingSkipBtn.classList.remove('hidden');
     this.openingScreenEl.classList.remove('hidden', 'fade-out');
 
-    const bootEntries: Array<{ delay: number; pct: number; label: string; status: string }> = [
-      { delay: 120, pct: 18, label: 'T-TORIS ARCADE BIOS v1.3 // HIGH-VOLTAGE', status: 'OK' },
-      { delay: 300, pct: 36, label: 'CANVAS 2D HYPER-PARTICLE ACCELERATOR', status: '60FPS OK' },
-      { delay: 480, pct: 55, label: '7-BAG SRS & T-SPIN MATRIX ENGINE', status: 'READY' },
-      { delay: 660, pct: 74, label: 'DOPAMINE OVERDRIVE 5x5 OMEGA CORE', status: 'CHARGED' },
-      { delay: 840, pct: 92, label: 'POLYPHONIC SYNTH & STADIUM CHEER', status: 'MAX!!' },
-      { delay: 1020, pct: 100, label: 'ALL SYSTEMS OVERDRIVE // IGNITION!!', status: 'GO!!' },
+    const bootEntries: Array<{ delay: number; pct: number; initial: string; rest: string; status: string }> = [
+      { delay: 140, pct: 16, initial: 'T', rest: 'actical      // 7-BAG SRS & MATRIX KERNEL', status: 'OK' },
+      { delay: 360, pct: 33, initial: 'E', rest: 'xecution     // 60FPS HYPER-PARTICLE GPU', status: 'ACTIVE' },
+      { delay: 580, pct: 50, initial: 'T', rest: 'etrad        // T-SPIN & HARD DROP CORE', status: 'READY' },
+      { delay: 800, pct: 67, initial: 'R', rest: 'esonance     // DOPAMINE 5x5 OMEGA DRIVE', status: 'CHARGED' },
+      { delay: 1020, pct: 84, initial: 'I', rest: 'nterface     // P2P & VS-CPU NEURAL LINK', status: 'LINKED' },
+      { delay: 1240, pct: 100, initial: 'S', rest: 'ystem        // ALL MODULES SYNCHRONIZED', status: 'ONLINE' },
     ];
 
     bootEntries.forEach((entry, idx) => {
       const tid = window.setTimeout(() => {
         if (!this.isOnOpeningScreen || this.isOpeningLogoReady) return;
         const row = document.createElement('div');
-        row.className = 'boot-line';
-        row.innerHTML = `<span>&gt; ${entry.label}</span><span class="boot-ok">[ ${entry.status} ]</span>`;
+        row.className = 'boot-line acro-line';
+        row.innerHTML = `<span class="acro-word"><span class="acro-init">${entry.initial}</span><span class="acro-rest">${entry.rest}</span></span><span class="boot-ok">[ ${entry.status} ]</span>`;
         this.openingBootLinesEl.appendChild(row);
         this.openingBootBarEl.style.width = `${entry.pct}%`;
         this.sound.playBootTick(idx);
@@ -1456,7 +1456,7 @@ class AppController {
     // Phase 2: Reveal Explosive Logo Stage & Wait for User Button Press
     const stageTimer = window.setTimeout(() => {
       this.showOpeningLogoStage();
-    }, 1300);
+    }, 1650);
     this.openingTimers.push(stageTimer);
   }
 

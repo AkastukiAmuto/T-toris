@@ -37,11 +37,32 @@ if (fs.existsSync(defaultAsar)) {
   fs.rmSync(defaultAsar, { force: true });
 }
 
-// Rename electron.exe -> T-TORIS.exe
+// Rename electron.exe -> T-TORIS.exe and apply custom icon
 const srcExe = path.join(outAppDir, 'electron.exe');
 const destExe = path.join(outAppDir, 'T-TORIS.exe');
 if (fs.existsSync(srcExe)) {
   fs.renameSync(srcExe, destExe);
+}
+const iconIcoPath = path.join(rootDir, 'assets', 'icon.ico');
+async function applyExeIcon() {
+  if (fs.existsSync(destExe) && fs.existsSync(iconIcoPath)) {
+    try {
+      const { rcedit } = require('rcedit');
+      const fn = typeof rcedit === 'function' ? rcedit : require('rcedit');
+      await fn(destExe, {
+        icon: iconIcoPath,
+        'version-string': {
+          ProductName: 'T.E.T.R.I.S.',
+          FileDescription: 'Tactical Execution Tetrad Resonance Interface System',
+        },
+        'file-version': pkg.version,
+        'product-version': pkg.version,
+      });
+      console.log('[DIST] Applied custom icon to T-TORIS.exe');
+    } catch (err) {
+      console.warn('[DIST] Warning: Could not apply icon via rcedit:', err.message || err);
+    }
+  }
 }
 
 console.log('[DIST] 3/5 Bundling production application files (excluding personal save data)...');
@@ -63,14 +84,18 @@ fs.writeFileSync(
   'utf-8'
 );
 
-// Copy index.html, styles.css, and dist/
+// Copy index.html, styles.css, assets/, and dist/
 fs.copyFileSync(path.join(rootDir, 'index.html'), path.join(resourcesAppDir, 'index.html'));
 fs.copyFileSync(path.join(rootDir, 'styles.css'), path.join(resourcesAppDir, 'styles.css'));
+if (fs.existsSync(path.join(rootDir, 'assets'))) {
+  copyRecursiveSync(path.join(rootDir, 'assets'), path.join(resourcesAppDir, 'assets'));
+}
 copyRecursiveSync(path.join(rootDir, 'dist'), path.join(resourcesAppDir, 'dist'));
 
 console.log('[DIST] 4/6 Creating README_遊び方.txt...');
 const readmeText = `====================================================
-  T-TORIS // SUPER DOPAMINE ARCADE EDITION (v${pkg.version})
+  T.E.T.R.I.S. // TACTICAL EXECUTION TETRAD RESONANCE
+  INTERFACE SYSTEM (v${pkg.version})
 ====================================================
 
 【起動方法】
@@ -141,6 +166,7 @@ try {
     '/nologo',
     '/target:winexe',
     '/optimize+',
+    fs.existsSync(iconIcoPath) ? `/win32icon:"${iconIcoPath}"` : '',
     `/out:"${updaterExePath}"`,
     '/r:System.dll',
     '/r:System.Drawing.dll',
@@ -148,7 +174,7 @@ try {
     '/r:System.IO.Compression.dll',
     '/r:System.IO.Compression.FileSystem.dll',
     `"${tempUpdaterCs}"`,
-  ].join(' ');
+  ].filter(Boolean).join(' ');
 
   execSync(cscCmd, { stdio: 'inherit' });
   fs.copyFileSync(updaterExePath, bundledUpdaterExePath);
@@ -160,15 +186,20 @@ try {
   if (fs.existsSync(tempUpdaterCs)) fs.rmSync(tempUpdaterCs, { force: true });
 }
 
-console.log('[DIST] 6/6 Creating distributable ZIP archive (release/T-TORIS-win64.zip)...');
-try {
-  execSync(
-    `powershell -NoProfile -Command "Compress-Archive -Path '${outAppDir}' -DestinationPath '${zipFilePath}' -Force"`,
-    { stdio: 'inherit' }
-  );
-  console.log(`[DIST] Done! ZIP archive created at: ${zipFilePath}`);
-} catch (err) {
-  console.warn('[DIST] Warning: Could not create ZIP automatically, but unpacked folder is ready:', outAppDir);
+async function finalize() {
+  await applyExeIcon();
+  console.log('[DIST] 6/6 Creating distributable ZIP archive (release/T-TORIS-win64.zip)...');
+  try {
+    execSync(
+      `powershell -NoProfile -Command "Compress-Archive -Path '${outAppDir}' -DestinationPath '${zipFilePath}' -Force"`,
+      { stdio: 'inherit' }
+    );
+    console.log(`[DIST] Done! ZIP archive created at: ${zipFilePath}`);
+  } catch (err) {
+    console.warn('[DIST] Warning: Could not create ZIP automatically, but unpacked folder is ready:', outAppDir);
+  }
+
+  console.log(`[DIST] SUCCESS! Distributable folder: ${outAppDir}`);
 }
 
-console.log(`[DIST] SUCCESS! Distributable folder: ${outAppDir}`);
+void finalize();

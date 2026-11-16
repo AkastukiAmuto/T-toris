@@ -1,8 +1,8 @@
 {
   "name": "t-toris",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "githubRepo": "AkastukiAmuto/T-toris",
-  "description": "Desktop Tetris App with Theme Switching, BGM/SE, Hold, Ghost, and Particle Effects",
+  "description": "T.E.T.R.I.S. - Tactical Execution Tetrad Resonance Interface System",
   "main": "dist/main.js",
   "scripts": {
     "build:main": "tsc -p tsconfig.json",
@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "electron": "^33.0.0",
+    "rcedit": "^5.0.2",
     "typescript": "^5.6.0"
   }
 }
