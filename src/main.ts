@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -71,6 +72,57 @@ ipcMain.handle('save-settings', (_event, data: Record<string, unknown>) => {
   } catch (err) {
     console.error('[MAIN] Error writing user-settings.json:', err);
     return false;
+  }
+});
+
+ipcMain.handle('get-app-info', () => {
+  try {
+    const pkgPath = path.join(__dirname, '../package.json');
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as {
+        version?: string;
+        githubRepo?: string;
+      };
+      return {
+        version: pkg.version || app.getVersion(),
+        githubRepo: pkg.githubRepo || '',
+      };
+    }
+  } catch (err) {
+    console.error('[MAIN] Error reading package.json:', err);
+  }
+  return { version: app.getVersion(), githubRepo: '' };
+});
+
+ipcMain.handle('launch-updater', () => {
+  try {
+    const candidates = app.isPackaged
+      ? [path.join(path.dirname(process.execPath), 'T-TORIS-Updater.exe')]
+      : [
+          path.join(__dirname, '../release/T-TORIS-Updater.exe'),
+          path.join(path.dirname(process.execPath), 'T-TORIS-Updater.exe'),
+        ];
+
+    const updaterPath = candidates.find((p) => fs.existsSync(p));
+    if (!updaterPath) {
+      return {
+        ok: false,
+        error: 'T-TORIS-Updater.exe が見つかりませんでした。',
+      };
+    }
+
+    const child = spawn(updaterPath, [], {
+      cwd: path.dirname(updaterPath),
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: (err as Error).message || 'アップデーターの起動に失敗しました。',
+    };
   }
 });
 

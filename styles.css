@@ -2749,3 +2749,16 @@ body.vs-cpu-active .controls-card {
   resize: vertical;
   box-sizing: border-box;
 }
+
+.update-check-btn.has-update {
+  color: #101524;
+  background: linear-gradient(135deg, #00f0ff, #00ff88);
+  border-color: #ffffff;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.55);
+  animation: updatePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes updatePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}

@@ -41,6 +41,8 @@ declare global {
     storageApi?: {
       loadSettings: () => Promise<PersistedSettings | null>;
       saveSettings: (data: PersistedSettings) => Promise<boolean>;
+      getAppInfo?: () => Promise<{ version: string; githubRepo: string }>;
+      launchUpdater?: () => Promise<{ ok: boolean; error?: string }>;
       shakeWindow?: (intensity: number, durationMs: number) => void;
     };
   }
@@ -136,6 +138,8 @@ class AppController {
   private openingEnterBtn!: HTMLButtonElement;
   private openingSkipBtn!: HTMLButtonElement;
   private homeReplayOpBtn!: HTMLButtonElement;
+  private homeVersionTagEl!: HTMLElement;
+  private homeUpdateBtn!: HTMLButtonElement;
 
   private opParticles: Array<{
     x: number;
@@ -453,6 +457,7 @@ class AppController {
     this.bindDom();
     this.loadLocalPreferences();
     void this.loadDiskPreferences();
+    void this.loadAppVersionAndCheckUpdates();
     this.renderKeybindRows();
     this.updateControlHintsUI();
     this.updateBgmUI();
@@ -476,6 +481,8 @@ class AppController {
     this.openingEnterBtn = document.getElementById('opening-enter-btn') as HTMLButtonElement;
     this.openingSkipBtn = document.getElementById('opening-skip-btn') as HTMLButtonElement;
     this.homeReplayOpBtn = document.getElementById('home-replay-op-btn') as HTMLButtonElement;
+    this.homeVersionTagEl = document.getElementById('home-version-tag')!;
+    this.homeUpdateBtn = document.getElementById('home-update-btn') as HTMLButtonElement;
 
     this.homeScreenEl = document.getElementById('home-screen')!;
     this.appShellEl = document.getElementById('app-shell')!;
@@ -645,6 +652,46 @@ class AppController {
     this.bgmSlider.value = String(Math.round(this.sound.getBgmVolume() * 100));
     this.seSlider.value = String(Math.round(this.sound.getSeVolume() * 100));
     this.updateAudioBtnUI();
+  }
+
+  private isNewerVersion(remote: string, current: string): boolean {
+    const parse = (v: string) =>
+      v
+        .replace(/^v/i, '')
+        .split('.')
+        .map((n) => parseInt(n.replace(/\D/g, ''), 10) || 0);
+    const r = parse(remote);
+    const c = parse(current);
+    const len = Math.max(r.length, c.length);
+    for (let i = 0; i < len; i++) {
+      const rv = r[i] || 0;
+      const cv = c[i] || 0;
+      if (rv !== cv) return rv > cv;
+    }
+    return false;
+  }
+
+  private async loadAppVersionAndCheckUpdates(): Promise<void> {
+    if (!window.storageApi?.getAppInfo) return;
+    try {
+      const info = await window.storageApi.getAppInfo();
+      const ver = info.version || '1.4.0';
+      this.homeVersionTagEl.textContent = `ARCADE EDITION // VER ${ver}`;
+
+      if (!info.githubRepo) return;
+      const res = await fetch(`https://api.github.com/repos/${info.githubRepo}/releases/latest`, {
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { tag_name?: string };
+      if (data.tag_name && this.isNewerVersion(data.tag_name, ver)) {
+        const cleanTag = data.tag_name.replace(/^v/i, '');
+        this.homeUpdateBtn.textContent = `🆕 v${cleanTag} 更新あり!`;
+        this.homeUpdateBtn.classList.add('has-update');
+      }
+    } catch {
+      // Offline or rate-limited: silently ignore
+    }
   }
 
   private async loadDiskPreferences(): Promise<void> {
@@ -1821,6 +1868,19 @@ class AppController {
     this.homeReplayOpBtn.addEventListener('click', () => {
       this.startOpeningSequence();
       this.homeReplayOpBtn.blur();
+    });
+
+    this.homeUpdateBtn.addEventListener('click', async () => {
+      this.sound.playHold();
+      this.homeUpdateBtn.blur();
+      if (!window.storageApi?.launchUpdater) {
+        alert('アップデーター起動機能が利用できません。');
+        return;
+      }
+      const res = await window.storageApi.launchUpdater();
+      if (!res.ok) {
+        alert(res.error || 'T-TORIS-Updater.exe の起動に失敗しました。');
+      }
     });
 
     this.homeBtnNormal.addEventListener('click', () => {
