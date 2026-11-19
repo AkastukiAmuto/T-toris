@@ -42,6 +42,13 @@ declare global {
       loadSettings: () => Promise<PersistedSettings | null>;
       saveSettings: (data: PersistedSettings) => Promise<boolean>;
       getAppInfo?: () => Promise<{ version: string; githubRepo: string }>;
+      checkForUpdates?: () => Promise<{
+        hasUpdate: boolean;
+        currentVersion: string;
+        latestVersion: string;
+        downloadUrl: string;
+      }>;
+      applyInAppUpdate?: (downloadUrl: string) => Promise<{ ok: boolean; error?: string }>;
       launchUpdater?: () => Promise<{ ok: boolean; error?: string }>;
       shakeWindow?: (intensity: number, durationMs: number) => void;
     };
@@ -140,6 +147,8 @@ class AppController {
   private homeReplayOpBtn!: HTMLButtonElement;
   private homeVersionTagEl!: HTMLElement;
   private homeUpdateBtn!: HTMLButtonElement;
+  private availableUpdateUrl: string = '';
+  private availableUpdateVersion: string = '';
 
   private opParticles: Array<{
     x: number;
@@ -685,23 +694,6 @@ class AppController {
     this.updateAudioBtnUI();
   }
 
-  private isNewerVersion(remote: string, current: string): boolean {
-    const parse = (v: string) =>
-      v
-        .replace(/^v/i, '')
-        .split('.')
-        .map((n) => parseInt(n.replace(/\D/g, ''), 10) || 0);
-    const r = parse(remote);
-    const c = parse(current);
-    const len = Math.max(r.length, c.length);
-    for (let i = 0; i < len; i++) {
-      const rv = r[i] || 0;
-      const cv = c[i] || 0;
-      if (rv !== cv) return rv > cv;
-    }
-    return false;
-  }
-
   private async loadAppVersionAndCheckUpdates(): Promise<void> {
     if (!window.storageApi?.getAppInfo) return;
     try {
@@ -709,15 +701,12 @@ class AppController {
       const ver = info.version || '1.5.0';
       this.homeVersionTagEl.textContent = `T.E.T.R.I.S. OS // VER ${ver}`;
 
-      if (!info.githubRepo) return;
-      const res = await fetch(`https://api.github.com/repos/${info.githubRepo}/releases/latest`, {
-        headers: { Accept: 'application/vnd.github+json' },
-      });
-      if (!res.ok) return;
-      const data = (await res.json()) as { tag_name?: string };
-      if (data.tag_name && this.isNewerVersion(data.tag_name, ver)) {
-        const cleanTag = data.tag_name.replace(/^v/i, '');
-        this.homeUpdateBtn.textContent = `🆕 v${cleanTag} 更新あり!`;
+      if (!window.storageApi.checkForUpdates) return;
+      const updateInfo = await window.storageApi.checkForUpdates();
+      if (updateInfo.hasUpdate && updateInfo.latestVersion && updateInfo.downloadUrl) {
+        this.availableUpdateVersion = updateInfo.latestVersion;
+        this.availableUpdateUrl = updateInfo.downloadUrl;
+        this.homeUpdateBtn.textContent = `🆕 v${updateInfo.latestVersion} 今すぐ更新!`;
         this.homeUpdateBtn.classList.add('has-update');
       }
     } catch {
@@ -2058,13 +2047,47 @@ class AppController {
     this.homeUpdateBtn.addEventListener('click', async () => {
       this.sound.playHold();
       this.homeUpdateBtn.blur();
+
+      if (!this.availableUpdateUrl && window.storageApi?.checkForUpdates) {
+        const prevText = this.homeUpdateBtn.textContent;
+        this.homeUpdateBtn.textContent = '🔍 確認中...';
+        const info = await window.storageApi.checkForUpdates();
+        if (info.hasUpdate && info.downloadUrl) {
+          this.availableUpdateVersion = info.latestVersion;
+          this.availableUpdateUrl = info.downloadUrl;
+          this.homeUpdateBtn.textContent = `🆕 v${info.latestVersion} 今すぐ更新!`;
+          this.homeUpdateBtn.classList.add('has-update');
+        } else {
+          this.homeUpdateBtn.textContent = prevText;
+          alert(`現在最新バージョン (v${info.currentVersion}) です！`);
+          return;
+        }
+      }
+
+      if (this.availableUpdateUrl && window.storageApi?.applyInAppUpdate) {
+        const ok = confirm(
+          `新しいバージョン (v${this.availableUpdateVersion}) が見つかりました！\nセーブデータを保持したままゲーム内でアップデートして自動再起動しますか？`
+        );
+        if (!ok) return;
+
+        this.homeUpdateBtn.disabled = true;
+        this.homeUpdateBtn.textContent = '⏳ 更新ダウンロード中...';
+        const res = await window.storageApi.applyInAppUpdate(this.availableUpdateUrl);
+        if (!res.ok) {
+          this.homeUpdateBtn.disabled = false;
+          this.homeUpdateBtn.textContent = `🆕 v${this.availableUpdateVersion} 今すぐ更新!`;
+          alert(res.error || 'ゲーム内アップデートに失敗しました。');
+        }
+        return;
+      }
+
       if (!window.storageApi?.launchUpdater) {
-        alert('アップデーター起動機能が利用できません。');
+        alert('アップデート機能が利用できません。');
         return;
       }
       const res = await window.storageApi.launchUpdater();
       if (!res.ok) {
-        alert(res.error || 'T-TORIS-Updater.exe の起動に失敗しました。');
+        alert(res.error || 'アップデーターの起動に失敗しました。');
       }
     });
 
