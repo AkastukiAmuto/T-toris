@@ -1,6 +1,6 @@
 {
   "name": "t-toris",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "githubRepo": "AkastukiAmuto/T-toris",
   "description": "T.E.T.R.I.S. - Tactical Execution Tetrad Resonance Interface System",
   "main": "dist/main.js",
